@@ -22,6 +22,7 @@ public class CompressedLabelTreeCompressTests
         treeRoot.Compress(cache, compressionThreshold);
 
         Assert.True(treeRoot.Label);
+        Assert.Empty(treeRoot.Children);
         Assert.Equal(1, Globals.NavLayerData[NavLayers.Air].PathableLeafs);
         Assert.Equal(0, Globals.NavLayerData[NavLayers.Air].UnpathableLeafs);
     }
@@ -68,6 +69,8 @@ public class CompressedLabelTreeCompressTests
 
         Assert.Null(treeRoot.Label);
         Assert.Equal(1, Globals.NavLayerData[NavLayers.Air].Subdivisions);
+        Assert.Equal(3, Globals.NavLayerData[NavLayers.Air].PathableLeafs);
+        Assert.Equal(1, Globals.NavLayerData[NavLayers.Air].UnpathableLeafs);
         Assert.Equal(4, treeRoot.Children.Count);
 
         for (int i = 0; i < treeRoot.Children.Count; i++)
@@ -77,10 +80,12 @@ public class CompressedLabelTreeCompressTests
             if (i == index)
             {
                 Assert.False(child.Label);
+                Assert.Empty(child.Children);
             }
             else
             {
                 Assert.True(child.Label);
+                Assert.Empty(child.Children);
             }
         }
     }
