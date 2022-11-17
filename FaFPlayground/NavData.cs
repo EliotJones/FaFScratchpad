@@ -118,8 +118,6 @@ public class CompressedLabelTree
     {
         var isBaseCase = currentStep == minStep;
 
-        var myChildren = new List<CompressedLabelTree>();
-
         // Used to ensure all values in this quad share the same value.
         // If not we need to split further.
         var i = 0;
@@ -130,13 +128,28 @@ public class CompressedLabelTree
         var pathable = 0;
         var unpathable = 0;
 
+        var subQuadResultFlags = new bool[4]
+        {
+            true,
+            true,
+            true,
+            true
+        };
+        var subQuadGeneratedFlags = new bool[4];
+        var quadChildren = new List<CompressedLabelTree>();
+
+        // Step through the sub-quads reducing step size (e.g. 4-4 -> 2-2 -> 1-1)
+
         var newStep = currentStep / 2;
         var increment = isBaseCase ? 1 : newStep;
         for (int z = offsetZ; z < offsetZ + currentStep; z += increment)
         {
             for (int x = offsetX; x < offsetX + currentStep; x += increment)
             {
+                quadChildren.Clear();
+                // We're now in a sub-quad starting at (z,x) with a width/height of (increment)
 
+                // If we've reached the minimum step size we only care if the quad of this size contains a non-truthy value.
                 if (isBaseCase)
                 {
                     result &= rCache[z][x];
@@ -145,34 +158,65 @@ public class CompressedLabelTree
                     {
                         break;
                     }
+
+                    continue;
+                }
+
+                // Otherwise continue analyzing the sub-quads.
+                var inner = CompressThirdly(
+                    rCache,
+                    z,
+                    x,
+                    newStep,
+                    minStep,
+                    quadChildren);
+
+                // Store the first value in this sub-quad, if all following values agree we can keep the quad merged.
+                if (i == 0)
+                {
+                    result = inner;
+                }
+
+                // Record the flags so we don't store pointless sub-quads if no splitting needed.
+                if (inner == true)
+                {
+                    subQuadResultFlags[i] = true;
+                    pathable++;
+                }
+                else if (inner == false)
+                {
+                    subQuadResultFlags[i] = false;
+                    unpathable++;
                 }
                 else
                 {
-                    var inner = CompressThirdly(
-                        rCache,
-                        z,
+                    subQuadResultFlags[i] = false;
+                }
+
+                // If the values are not shared we can't merge this quad.
+                if (!result.HasValue || (i > 0 && inner != result))
+                {
+                    allShareValue = false;
+                }
+
+                if (!allShareValue)
+                {
+                    var subQuad = new CompressedLabelTree(
+                        _layer,
+                        _bx,
+                        _bz,
+                        currentStep,
                         x,
-                        newStep,
-                        minStep,
-                        myChildren);
+                        z);
 
-                    if (i == 0)
+                    if (quadChildren.Count == 0)
                     {
-                        result = inner;
-                    }
-                    else if (inner != result)
-                    {
-                        allShareValue = false;
+                        subQuad.Label = inner;
                     }
 
-                    if (inner == true)
-                    {
-                        pathable++;
-                    }
-                    else if (inner == false)
-                    {
-                        unpathable++;
-                    }
+                    subQuad.Children.AddRange(quadChildren);
+                    children.Add(subQuad);
+                    subQuadGeneratedFlags[i] = true;
                 }
 
                 i++;
@@ -186,17 +230,6 @@ public class CompressedLabelTree
 
         if (isBaseCase)
         {
-            children.Add(new CompressedLabelTree(
-                _layer,
-                _bx,
-                _bz,
-                currentStep,
-                offsetX,
-                offsetZ)
-            {
-                Label = result
-            });
-
             return result;
         }
 
@@ -206,10 +239,30 @@ public class CompressedLabelTree
             return result;
         }
 
+        for (var subQuadIndex = 0; subQuadIndex < subQuadGeneratedFlags.Length; subQuadIndex++)
+        {
+            var isGenerated = subQuadGeneratedFlags[subQuadIndex];
+
+            if (!isGenerated)
+            {
+                children.Insert(subQuadIndex,
+                    new CompressedLabelTree(
+                        _layer,
+                        _bx,
+                        _bz,
+                        currentStep,
+                        // todo, plus some offset.
+                        offsetX,
+                        offsetZ)
+                    {
+                        Label = subQuadResultFlags[subQuadIndex]
+                    });
+            }
+        }
+
         Globals.NavLayerData[_layer].Subdivisions = Globals.NavLayerData[_layer].Subdivisions + 1;
         Globals.NavLayerData[_layer].PathableLeafs = Globals.NavLayerData[_layer].PathableLeafs + pathable;
         Globals.NavLayerData[_layer].UnpathableLeafs = Globals.NavLayerData[_layer].UnpathableLeafs + unpathable;
-        children.AddRange(myChildren);
 
         return null;
     }
