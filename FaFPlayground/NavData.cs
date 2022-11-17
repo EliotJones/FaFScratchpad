@@ -118,6 +118,8 @@ public class CompressedLabelTree
     {
         var isBaseCase = currentStep == minStep;
 
+        var myChildren = new List<CompressedLabelTree>();
+
         // Used to ensure all values in this quad share the same value.
         // If not we need to split further.
         var i = 0;
@@ -134,7 +136,6 @@ public class CompressedLabelTree
         {
             for (int x = offsetX; x < offsetX + currentStep; x += increment)
             {
-                var myChildren = new List<CompressedLabelTree>();
 
                 if (isBaseCase)
                 {
@@ -174,22 +175,6 @@ public class CompressedLabelTree
                     }
                 }
 
-                // If we have children then wrap them in a node
-                if (myChildren.Count > 0)
-                {
-                    var child = new CompressedLabelTree(
-                        _layer,
-                        _bx,
-                        _bz,
-                        currentStep,
-                        offsetX,
-                        offsetZ);
-
-                    child.Children.AddRange(myChildren);
-
-                    children.Add(child);
-                }
-
                 i++;
             }
 
@@ -224,6 +209,7 @@ public class CompressedLabelTree
         Globals.NavLayerData[_layer].Subdivisions = Globals.NavLayerData[_layer].Subdivisions + 1;
         Globals.NavLayerData[_layer].PathableLeafs = Globals.NavLayerData[_layer].PathableLeafs + pathable;
         Globals.NavLayerData[_layer].UnpathableLeafs = Globals.NavLayerData[_layer].UnpathableLeafs + unpathable;
+        children.AddRange(myChildren);
 
         return null;
     }
