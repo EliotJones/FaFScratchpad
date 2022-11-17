@@ -16,6 +16,9 @@ public enum NavLayers
 
 public class NavLayerDataItem
 {
+    /// <summary>
+    /// The number of times a quad gets split into children
+    /// </summary>
     public int Subdivisions;
     public int PathableLeafs = 0;
     public int UnpathableLeafs = 0;
@@ -205,7 +208,7 @@ public class CompressedLabelTree
                         _layer,
                         _bx,
                         _bz,
-                        currentStep,
+                        newStep,
                         x,
                         z);
 
@@ -250,7 +253,7 @@ public class CompressedLabelTree
                         _layer,
                         _bx,
                         _bz,
-                        currentStep,
+                        newStep,
                         // todo, plus some offset.
                         offsetX,
                         offsetZ)

@@ -306,6 +306,86 @@ public class CompressedLabelTreeCompressTests
         }
     }
 
+
+    [Fact]
+    public void FourByFourFiveNotFineCompressionLevel1()
+    {
+        var treeRoot = GivenTreeWithCompressionLevel(4);
+
+        var cache = new NavLabelCache(
+            new List<IReadOnlyList<bool>>
+            {
+                new[] { f, f, t, t },
+                new[] { f, f, t, t },
+                new[] { t, t, t, t },
+                new[] { t, t, f, t }
+            });
+
+        /*
+         * Divide into 7 blocks:
+         * 1:
+         * f f
+         * f f
+         *
+         * 2:
+         * t t
+         * t t
+         *
+         * 3:
+         * t t
+         * t t
+         * 
+         * 4-7:
+         * t | t | f | t
+         */
+
+        treeRoot.Compress(cache, 1);
+
+        Assert.Null(treeRoot.Label);
+        Assert.Equal(2, Globals.NavLayerData[NavLayers.Air].Subdivisions);
+        Assert.Equal(5, Globals.NavLayerData[NavLayers.Air].PathableLeafs);
+        Assert.Equal(2, Globals.NavLayerData[NavLayers.Air].UnpathableLeafs);
+        Assert.Equal(4, treeRoot.Children.Count);
+
+        for (var i = 0; i < treeRoot.Children.Count; i++)
+        {
+            var child = treeRoot.Children[i];
+
+            if (i == 0)
+            {
+                Assert.False(child.Label);
+                Assert.Empty(child.Children);
+            }
+            else if (i == 1 || i == 2)
+            {
+                Assert.True(child.Label);
+                Assert.Empty(child.Children);
+            }
+            else if (i == 3)
+            {
+                Assert.Null(child.Label);
+                Assert.Equal(4, child.Children.Count);
+                for (var j = 0; j < child.Children.Count; j++)
+                {
+                    var grandchild = child.Children[j];
+
+                    if (j == 2)
+                    {
+                        Assert.False(grandchild.Label);
+                    }
+                    else
+                    {
+                        Assert.True(grandchild.Label);
+                    }
+                }
+            }
+            else
+            {
+                Assert.True(child.Label);
+            }
+        }
+    }
+
     private static CompressedLabelTree GivenTreeWithCompressionLevel(int level)
     {
         Globals.NavLayerData = new NavLayerData();
