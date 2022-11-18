@@ -306,7 +306,6 @@ public class CompressedLabelTreeCompressTests
         }
     }
 
-
     [Fact]
     public void FourByFourFiveNotFineCompressionLevel1()
     {
@@ -370,6 +369,85 @@ public class CompressedLabelTreeCompressTests
                     var grandchild = child.Children[j];
 
                     if (j == 2)
+                    {
+                        Assert.False(grandchild.Label);
+                    }
+                    else
+                    {
+                        Assert.True(grandchild.Label);
+                    }
+                }
+            }
+            else
+            {
+                Assert.True(child.Label);
+            }
+        }
+    }
+
+    [Fact]
+    public void FourByFourAllButOneNotFineCompressionLevel2()
+    {
+        var treeRoot = GivenTreeWithCompressionLevel(4);
+
+        var cache = new NavLabelCache(
+            new List<IReadOnlyList<bool>>
+            {
+                new[] { f, f, f, f },
+                new[] { f, f, f, f },
+                new[] { t, f, f, f },
+                new[] { t, t, f, f }
+            });
+
+        /*
+         * Divide into 7 blocks:
+         * 1:
+         * f f
+         * f f
+         *
+         * 2:
+         * f f
+         * f f
+         *
+         * 3 - 6:
+         * t | f | t | t
+         * 
+         * 7:
+         * f f
+         * f f
+         */
+
+        treeRoot.Compress(cache, 1);
+
+        Assert.Null(treeRoot.Label);
+        Assert.Equal(2, Globals.NavLayerData[NavLayers.Air].Subdivisions);
+        Assert.Equal(3, Globals.NavLayerData[NavLayers.Air].PathableLeafs);
+        Assert.Equal(4, Globals.NavLayerData[NavLayers.Air].UnpathableLeafs);
+        Assert.Equal(4, treeRoot.Children.Count);
+
+        for (var i = 0; i < treeRoot.Children.Count; i++)
+        {
+            var child = treeRoot.Children[i];
+
+            if (i == 0)
+            {
+                Assert.False(child.Label);
+                Assert.Empty(child.Children);
+            }
+            else if (i == 1 || i == 3)
+            {
+                Assert.False(child.Label);
+                Assert.Empty(child.Children);
+            }
+            else if (i == 2)
+            {
+                Assert.Null(child.Label);
+                Assert.Equal(4, child.Children.Count);
+                for (var j = 0; j < child.Children.Count; j++)
+                {
+                    var grandchild = child.Children[j];
+
+                    if (j == 1)
                     {
                         Assert.False(grandchild.Label);
                     }
